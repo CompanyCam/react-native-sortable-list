@@ -1,7 +1,7 @@
-import React, {Component, cloneElement} from 'react';
-import PropTypes from 'prop-types';
-import {Animated, PanResponder, StyleSheet} from 'react-native';
-import {shallowEqual} from './utils';
+import React, { Component, cloneElement } from "react";
+import PropTypes from "prop-types";
+import { Animated, PanResponder, StyleSheet } from "react-native";
+import { shallowEqual } from "./utils";
 
 export default class Row extends Component {
   static propTypes = {
@@ -12,7 +12,7 @@ export default class Row extends Component {
     style: Animated.View.propTypes.style,
     location: PropTypes.shape({
       x: PropTypes.number,
-      y: PropTypes.number,
+      y: PropTypes.number
     }),
     manuallyActivateRows: PropTypes.bool,
     activationTime: PropTypes.number,
@@ -26,12 +26,12 @@ export default class Row extends Component {
     onMove: PropTypes.func,
 
     // Will be called, when user release the view.
-    onRelease: PropTypes.func,
+    onRelease: PropTypes.func
   };
 
   static defaultProps = {
-    location: {x: 0, y: 0},
-    activationTime: 200,
+    location: { x: 0, y: 0 },
+    activationTime: 200
   };
 
   constructor(props) {
@@ -39,6 +39,7 @@ export default class Row extends Component {
 
     this._animatedLocation = new Animated.ValueXY(props.location);
     this._location = props.location;
+    this.active = false;
 
     this._animatedLocation.addListener(this._onChangeLocation);
   }
@@ -49,8 +50,8 @@ export default class Row extends Component {
     onMoveShouldSetPanResponder: (e, gestureState) => {
       if (this._isDisabled()) return false;
 
-      const vy = Math.abs(gestureState.vy)
-      const vx = Math.abs(gestureState.vx)
+      const vy = Math.abs(gestureState.vy);
+      const vx = Math.abs(gestureState.vx);
 
       return this._active && (this.props.horizontal ? vx > vy : vy > vx);
     },
@@ -69,14 +70,13 @@ export default class Row extends Component {
       this._prevGestureState = {
         ...gestureState,
         moveX: gestureState.x0,
-        moveY: gestureState.y0,
+        moveY: gestureState.y0
       };
 
       if (this.props.manuallyActivateRows) return;
 
       this._longPressTimer = setTimeout(() => {
         if (this._active) return;
-
         this._toggleActive(e, gestureState);
       }, this.props.activationTime);
     },
@@ -94,9 +94,12 @@ export default class Row extends Component {
         return;
       }
 
-      const elementMove = this._mapGestureToMove(this._prevGestureState, gestureState);
+      const elementMove = this._mapGestureToMove(
+        this._prevGestureState,
+        gestureState
+      );
       this.moveBy(elementMove);
-      this._prevGestureState = {...gestureState};
+      this._prevGestureState = { ...gestureState };
 
       if (this.props.onMove) {
         this.props.onMove(e, gestureState, this._nextLocation);
@@ -106,7 +109,6 @@ export default class Row extends Component {
     onPanResponderRelease: (e, gestureState) => {
       if (this._active) {
         this._toggleActive(e, gestureState);
-
       } else {
         this._cancelLongPress();
 
@@ -139,7 +141,7 @@ export default class Row extends Component {
           this._relocate(this.props.location);
         }
       }
-    },
+    }
   });
 
   componentWillReceiveProps(nextProps) {
@@ -150,37 +152,39 @@ export default class Row extends Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    return this.props.disabled !== nextProps.disabled ||
-           this.props.children !== nextProps.children ||
-           !shallowEqual(this.props.style, nextProps.style);
+    return (
+      this.props.disabled !== nextProps.disabled ||
+      this.props.children !== nextProps.children ||
+      !shallowEqual(this.props.style, nextProps.style)
+    );
   }
 
-  moveBy({dx = 0, dy = 0, animated = false}) {
+  moveBy({ dx = 0, dy = 0, animated = false }) {
     this._nextLocation = {
       x: this._location.x + dx,
-      y: this._location.y + dy,
+      y: this._location.y + dy
     };
     this._relocate(this._nextLocation, animated);
   }
 
   render() {
-    const {children, style, horizontal} = this.props;
+    const { children, style, horizontal } = this.props;
     const rowStyle = [
-      style, styles.container, this._animatedLocation.getLayout(),
-      horizontal ? styles.horizontalContainer : styles.verticalContainer,
+      style,
+      styles.container,
+      this._animatedLocation.getLayout(),
+      horizontal ? styles.horizontalContainer : styles.verticalContainer
     ];
 
     return (
       <Animated.View
         {...this._panResponder.panHandlers}
         style={rowStyle}
-        onLayout={this._onLayout}>
-        {this.props.manuallyActivateRows && children
-          ? cloneElement(children, {
-            toggleRowActive: this._toggleActive,
-          })
-          : children
-        }
+        onLayout={this._onLayout}
+      >
+        {children({
+          toggleRowActive: this._toggleActive
+        })}
       </Animated.View>
     );
   }
@@ -196,7 +200,7 @@ export default class Row extends Component {
       this._isAnimationRunning = true;
       Animated.timing(this._animatedLocation, {
         toValue: nextLocation,
-        duration: 300,
+        duration: 150
       }).start(() => {
         this._isAnimationRunning = false;
       });
@@ -206,7 +210,9 @@ export default class Row extends Component {
   }
 
   _toggleActive = (e, gestureState) => {
-    const callback = this._active ? this.props.onRelease : this.props.onActivate;
+    const callback = this._active
+      ? this.props.onRelease
+      : this.props.onActivate;
 
     this._active = !this._active;
 
@@ -217,46 +223,47 @@ export default class Row extends Component {
 
   _mapGestureToMove(prevGestureState, gestureState) {
     return this.props.horizontal
-      ? {dx: gestureState.moveX - prevGestureState.moveX}
-      : {dy: gestureState.moveY - prevGestureState.moveY};
+      ? { dx: gestureState.moveX - prevGestureState.moveX }
+      : { dy: gestureState.moveY - prevGestureState.moveY };
   }
 
   _isDisabled() {
-      return this.props.disabled ||
-        this._isAnimationRunning;
-    }
+    return this.props.disabled || this._isAnimationRunning;
+  }
 
-  _isTouchInsideElement({nativeEvent}) {
-    return this._layout &&
+  _isTouchInsideElement({ nativeEvent }) {
+    return (
+      this._layout &&
       nativeEvent.locationX >= 0 &&
       nativeEvent.locationX <= this._layout.width &&
       nativeEvent.locationY >= 0 &&
-      nativeEvent.locationY <= this._layout.height;
+      nativeEvent.locationY <= this._layout.height
+    );
   }
 
-  _onChangeLocation = (value) => {
+  _onChangeLocation = value => {
     this._location = value;
   };
 
-  _onLayout = (e) => {
-      this._layout = e.nativeEvent.layout;
+  _onLayout = e => {
+    this._layout = e.nativeEvent.layout;
 
-      if (this.props.onLayout) {
-          this.props.onLayout(e);
-      }
+    if (this.props.onLayout) {
+      this.props.onLayout(e);
+    }
   };
 }
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    position: "absolute"
   },
   horizontalContainer: {
     top: 0,
-    bottom: 0,
+    bottom: 0
   },
   verticalContainer: {
     left: 0,
-    right: 0,
-  },
+    right: 0
+  }
 });
